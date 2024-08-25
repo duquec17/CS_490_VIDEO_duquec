@@ -96,6 +96,8 @@ pip3 install --upgrade datasets
 pip3 install bitsandbytes
 pip3 install clean-fid
 pip3 install ftfy regex tqdm
+pip3 install av
+conda install -c conda-forge openh264
 ```
 
 ## Making a Portable Environment

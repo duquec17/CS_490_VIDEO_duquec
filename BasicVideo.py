@@ -83,7 +83,7 @@ def main():
         capture = cv2.VideoCapture(filename)
         
         # Check if data is invalid
-        if capture is None:
+        if not capture.isOpened():
             print("ERROR: Could not open or find the video!")
             exit(1)
 
