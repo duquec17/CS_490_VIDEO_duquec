@@ -27,11 +27,31 @@ import cv2
 import pandas
 import sklearn
 
+def burn_eyes(image):
+    output = np.copy(image)
+    output = cv2.resize(output, dsize=(0,0), fx=0.1, fy=0.1)
+    output = cv2.resize(output, dsize=(0,0), fx=10.0, fy=10.0, 
+                        interpolation=cv2.INTER_NEAREST)
+    return output
+ 
+def blur_across_buffer(frame_buffer, time_index, frame):
+    frame = frame.astype(np.float64)
+    frame /= 255.0
+    
+    frame_buffer[time_index] = frame
+    ave_image = np.mean(frame_buffer, axis=0)
+    
+    time_index += 1
+    time_index %= len(frame_buffer) # frame_buffer.shape[0]
+    
+    return frame_buffer, time_index, ave_image
+    
 ###############################################################################
 # MAIN
 ###############################################################################
 
-def main(): 
+def main():  
+    
     
     myimage = np.zeros((480, 640, 3), dtype="uint8")
     
@@ -108,6 +128,9 @@ def main():
     
     my_frames = []
     
+    frame_buffer = None
+    time_index = 0
+    
     # While not closed...
     key = -1
     while key == -1:
@@ -115,10 +138,30 @@ def main():
         ret, frame = capture.read()
         
         my_frames.append(frame)
-        
-        if ret == True:        
+                
+        if ret == True: 
+            if frame_buffer is None:
+                frame_cnt = 10
+                video_shape = (frame_cnt,) + frame.shape
+                frame_buffer = np.zeros(video_shape, dtype=np.float64)                            
+                
             # Show the image
             cv2.imshow(windowName, frame)
+            
+            proc_frame = burn_eyes(frame)
+            
+            cv2.imshow("UNSPEAKABLE HORRORS", proc_frame)
+            
+            frame_buffer, time_index, ave_image = blur_across_buffer(frame_buffer,
+                                                                     time_index,
+                                                                     frame)
+            
+            cv2.imshow("AVERAGE", ave_image)
+            
+            fimage = frame.astype(np.float64)/255.0
+            fimage = np.absolute(fimage - ave_image)
+            
+            cv2.imshow("GHOST", fimage)
             
             frame_cnt = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
             frame_index = int(capture.get(cv2.CAP_PROP_POS_FRAMES))
