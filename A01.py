@@ -21,3 +21,17 @@ import pandas as pd
 import General_Testing as GT
 import A01
 
+def load_video_as_frames(video_filepath):
+    return 
+
+def compute_wait(fps):
+    return
+
+def display_frames(all_frames, title, fps=30):
+    return
+
+def save_frames(all_frames, output_dir, basename, fps=30):
+    return 
+
+def main():
+    return
