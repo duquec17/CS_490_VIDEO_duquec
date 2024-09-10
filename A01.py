@@ -4,22 +4,16 @@
 ## Writer: Cristian Duque
 ## Based off material from Professor Reale
 
-import unittest
-from unittest.mock import patch
-import io
-import shutil
-import multiprocessing
-from pathlib import Path
-from threading import Thread
-from time import sleep, perf_counter
+###############################################################################
+# IMPORTS
+###############################################################################
+
 import sys
-import os
-import subprocess as sub
-import cv2
 import numpy as np
-import pandas as pd
-import General_Testing as GT
-import A01
+import torch
+import cv2
+import pandas
+import sklearn
 
 def load_video_as_frames(video_filepath):
     return 
@@ -33,5 +27,14 @@ def display_frames(all_frames, title, fps=30):
 def save_frames(all_frames, output_dir, basename, fps=30):
     return 
 
+###############################################################################
+# MAIN
+###############################################################################
+
 def main():
-    return
+    
+    # Close down
+    print("Closing application...")
+    
+if __name__ == "__main__":
+    main()
