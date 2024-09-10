@@ -26,6 +26,15 @@ def load_video_as_frames(video_filepath):
         print("ERROR: Cannot open")
         return 
     
+    # Creation of all frames list
+    all_frames = []
+    
+    # Loop through the video once and add each frame to list
+    # TODO: X still has to be replaced
+    for i in range(x):
+        image = np.zeros((480,640,3), dtype="uint8")
+        all_frames.append(image)
+    
     return 
 
 def compute_wait(fps):
