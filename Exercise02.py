@@ -27,11 +27,63 @@ import cv2
 import pandas
 import sklearn
 
+def filterNeighborhood2D(image, kernel, crow, ccol):
+    halfH = kernel.shape[0]//2
+    halfW = kernel.shape[1]//2
+    
+    startOffH = (1 - kernel.shape[0]%2)
+    startOffW = (1 - kernel.shape[1]%2)
+    
+    endRow = crow + halfH
+    endCol = ccol + halfW
+    
+    startRow = crow - halfH + startOffH
+    startCol = ccol - halfW + startOffW
+    
+    clamp_startRow = max(0, startRow)
+    clamp_startCol = max(0, startCol)
+    
+    neighborhood = image[clamp_startRow:(endRow+1), clamp_startCol:(endCol+1)]
+    
+    if startRow < 0:
+       kernel = kernel[-startRow:] 
+    elif endRow > (image.shape[0]-1):
+        off = image.shape[0] - 1 - endRow
+        kernel = kernel[0:(kernel.shape[0]+off)]
+       
+    if startCol < 0:
+        kernel = kernel[:, -startCol:]
+    elif endCol > (image.shape[1]-1):
+        off = image.shape[1] - 1 - endCol
+        kernel = kernel[:, 0:(kernel.shape[1]+off)]
+        
+    print("NEIGHBORHOOD:", neighborhood.shape)
+    print("KERNEL:", kernel.shape)
+    
+    value = kernel * neighborhood
+    value = np.sum(value)
+    
+    return value
+
+def filter2D(image, kernel):
+    output = np.copy(image)
+    
+    for row in range(image.shape[0]):
+        for col in range(image.shape[1]):
+         output[row,col] = filterNeighborhood2D(image, kernel, row, col)
+         
+    return output
+
 ###############################################################################
 # MAIN
 ###############################################################################
 
 def main():        
+    
+    dummy_image = np.zeros((10,10), dtype="float64")
+    dummy_filter = np.zeros((3,3), dtype="float64")
+    dummy_output = filter2D(dummy_image,dummy_filter)
+    
     ###############################################################################
     # PYTORCH
     ###############################################################################
