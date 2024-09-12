@@ -27,11 +27,125 @@ import cv2
 import pandas
 import sklearn
 
+def filterNeighborhood2D(image, kernel, crow, ccol):
+    halfH = kernel.shape[0]//2
+    halfW = kernel.shape[1]//2
+    
+    startOffH = (1 - kernel.shape[0]%2)
+    startOffW = (1 - kernel.shape[1]%2)
+    
+    endRow = crow + halfH
+    endCol = ccol + halfW
+    
+    startRow = crow - halfH + startOffH
+    startCol = ccol - halfW + startOffW
+    
+    clamp_startRow = max(0, startRow)
+    clamp_startCol = max(0, startCol)
+    neighborhood = image[clamp_startRow:(endRow+1), clamp_startCol:(endCol+1)]
+    
+    if startRow < 0:
+        kernel = kernel[-startRow:]
+    elif endRow > (image.shape[0]-1):
+        off = image.shape[0] - 1 - endRow
+        kernel = kernel[0:(kernel.shape[0]+off)]
+            
+    if startCol < 0:
+        kernel = kernel[:, -startCol:]
+    elif endCol > (image.shape[1]-1):
+        off = image.shape[1] - 1 - endCol
+        kernel = kernel[:, 0:(kernel.shape[1]+off)]
+        
+    #print("NEIGHBORHOOD:", neighborhood.shape)
+    #print("KERNEL:", kernel.shape) 
+    
+    value = kernel * neighborhood
+    value = np.sum(value)  
+    
+    return value
+
+def filterNeighborhood3D(video, kernel, ctime, crow, ccol):
+    halfT = kernel.shape[0]//2
+    halfH = kernel.shape[1]//2
+    halfW = kernel.shape[2]//2
+    
+    startOffT = (1 - kernel.shape[0]%2)
+    startOffH = (1 - kernel.shape[1]%2)
+    startOffW = (1 - kernel.shape[2]%2)
+    
+    endTime = ctime + halfT
+    endRow = crow + halfH
+    endCol = ccol + halfW
+    
+    startTime = ctime - halfT + startOffT
+    startRow = crow - halfH + startOffH
+    startCol = ccol - halfW + startOffW
+    
+    clamp_startTime = max(0, startTime)
+    clamp_startRow = max(0, startRow)
+    clamp_startCol = max(0, startCol)
+    neighborhood = video[   clamp_startTime:(endTime+1),
+                            clamp_startRow:(endRow+1), 
+                            clamp_startCol:(endCol+1)]
+    
+    def get_bounds(start, end, max_image_size, max_kernel_size):
+        if start < 0:
+            s = -start
+            e = max_kernel_size
+        elif end > (max_image_size-1):
+            off = max_image_size - 1 - end
+            s = 0
+            e = max_kernel_size + off
+        else:
+            s = 0
+            e = max_kernel_size
+            
+        return s,e
+    
+    st, et = get_bounds(startTime, endTime, video.shape[0], kernel.shape[0])
+    sr, er = get_bounds(startRow, endRow, video.shape[1], kernel.shape[1])
+    sc, ec = get_bounds(startCol, endCol, video.shape[2], kernel.shape[2])
+       
+    kernel = kernel[st:et, sr:er, sc:ec]
+      
+    print("NEIGHBORHOOD:", neighborhood.shape)
+    print("KERNEL:", kernel.shape) 
+    
+    value = kernel * neighborhood
+    value = np.sum(value)  
+    
+    return value
+
+def filter2D(image, kernel):
+    output = np.copy(image)
+    
+    for row in range(image.shape[0]):
+        for col in range(image.shape[1]):
+            output[row,col] = filterNeighborhood2D(image, kernel, row, col)
+            
+    return output 
+
+def filter3D(video, kernel):
+    output = np.copy(video)
+    
+    for t in range(video.shape[0]):
+        for row in range(video.shape[1]):
+            for col in range(video.shape[2]):
+                output[t,row,col] = filterNeighborhood3D(video, kernel, t, row, col)           
+
+    return output
+
+
 ###############################################################################
 # MAIN
 ###############################################################################
 
-def main():        
+def main(): 
+    
+    dummy_video = np.zeros((4,4,4), dtype="float64")
+    dummy_filter = np.zeros((2,2,2), dtype="float64")
+    dummy_output = filter3D(dummy_video, dummy_filter)
+           
     ###############################################################################
     # PYTORCH
     ###############################################################################
@@ -118,7 +232,9 @@ def main():
             
             cv2.imshow("GRAY", gray_image)
             
-            fx = cv2.filter2D(gray_image, cv2.CV_64F, kfx)
+            #fx = cv2.filter2D(gray_image, cv2.CV_64F, kfx)
+            fx = filter2D(gray_image, kfx)
+            
             cv2.imshow("FX", np.absolute(fx)*4.0)
             
             if prev_frame is None:
