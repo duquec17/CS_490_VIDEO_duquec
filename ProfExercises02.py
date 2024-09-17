@@ -135,6 +135,41 @@ def filter3D(video, kernel):
 
     return output
 
+def compute_one_optical_flow_horn_shunck(prev_frame, cur_frame,
+                                        kfx, kfy, kft1, kft2):
+    
+    fx = cv2.filter2D(prev_frame, kfx) + cv2.filter2D(cur_frame, kfx)
+    fy = cv2.filter2D(prev_frame, kfy) + cv2.filter2D(cur_frame, kfy)
+    ft = cv2.filter2D(prev_frame, kft1) + cv2.filter2D(cur_frame, kft2)
+    
+    fx /= 4.0
+    fy /= 4.0
+    ft /= 4.0
+    
+    u = np.zeros(fx.shape, dtype="float64")
+    v = np.zeros(fx.shape, dtype="float64")
+    
+    lap_filter = np.array([0, 0.25, 0],
+                          [0.25,0,0.25],
+                          [0,0.25,0], dtype="float64")
+    
+    
+    
+
+def compute_optical_flow_horn_shunck(video_frames, kfx, kfy, kft1, kft2):
+    all_flow = []
+    prev_frame = None
+        
+    for frame in video_frames:
+        if prev_frame is None:
+            prev_frame = frame
+            
+        flow = compute_one_optical_flow_horn_shunck(prev_frame, frame,
+                                                    kfx, kfy, kft1, kft2)
+        all_flow.append(flow)
+        prev_frame = frame
+        
+    return all_flow
 
 ###############################################################################
 # MAIN
@@ -213,6 +248,14 @@ def main():
     
     kfx = np.array([[-1, 1],
                     [-1, 1]], dtype="float64")
+    kfy = np.array([[-1,-1],
+                    [1,1]], dtype="float64")
+    kft1 = np.array([[-1,-1],
+                     [-1,-1]], dtype="float64")
+    kft2 = np.array([[1,1],
+                     [1,1]], dtype="float64")
+    
+    video_frames = []    
     
     while key == -1:
         # Get next frame from capture
@@ -245,10 +288,9 @@ def main():
             
             cv2.imshow("DIFF", diff_image)
             
-            
-            prev_frame = np.copy(gray_image)    
-            
-            
+            video_frames.append(gray_image)
+                        
+            prev_frame = np.copy(gray_image)              
         else:
             break
 
@@ -257,6 +299,28 @@ def main():
 
     # Release the capture and destroy the window
     capture.release()
+    cv2.destroyAllWindows()
+    
+    key = -1
+    ESC_KEY = 27
+    index = 0
+          
+    flow_frames = compute_optical_flow_horn_shunck(video_frames, 
+                                                    kfx, kfy,
+                                                    kft1, kft2)
+        
+    while key != ESC_KEY:
+        cur_frame = video_frames[index]
+        flow_frame = flow_frames[index]
+        
+        cv2.imshow("ORIGINAL", cur_frame)      
+        cv2.imshow("FLOW", flow_frame)  
+        key = cv2.waitKey(33)
+                
+        index += 1
+        if index >= len(video_frames):
+            index = 0
+
     cv2.destroyAllWindows()
 
     # Close down...
