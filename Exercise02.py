@@ -28,8 +28,13 @@ import pandas
 import sklearn
 
 def filterNeighborhood2D(image, kernel, crow, ccol):
+    halfT = kernel.shape[0]//2
     halfH = kernel.shape[0]//2
     halfW = kernel.shape[1]//2
+    
+    endTime = ctime + halfT
+    endRow = crow + halfH
+    endCol = ccol + halfW
     
     startOffH = (1 - kernel.shape[0]%2)
     startOffW = (1 - kernel.shape[1]%2)
@@ -37,6 +42,7 @@ def filterNeighborhood2D(image, kernel, crow, ccol):
     endRow = crow + halfH
     endCol = ccol + halfW
     
+    startTime = ctime - halfT + startOffT
     startRow = crow - halfH + startOffH
     startCol = ccol - halfW + startOffW
     
