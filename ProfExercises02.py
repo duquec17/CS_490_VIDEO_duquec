@@ -136,11 +136,17 @@ def filter3D(video, kernel):
     return output
 
 def compute_one_optical_flow_horn_shunck(prev_frame, cur_frame,
-                                        kfx, kfy, kft1, kft2):
+                                        kfx, kfy, kft1, kft2,
+                                        max_iter=20):
     
-    fx = cv2.filter2D(prev_frame, kfx) + cv2.filter2D(cur_frame, kfx)
-    fy = cv2.filter2D(prev_frame, kfy) + cv2.filter2D(cur_frame, kfy)
-    ft = cv2.filter2D(prev_frame, kft1) + cv2.filter2D(cur_frame, kft2)
+    fx = (cv2.filter2D(prev_frame, cv2.CV_64F, kfx) 
+          + cv2.filter2D(cur_frame, cv2.CV_64F, kfx))
+    
+    fy = (cv2.filter2D(prev_frame, cv2.CV_64F, kfy) 
+          + cv2.filter2D(cur_frame, cv2.CV_64F, kfy))
+    
+    ft = (cv2.filter2D(prev_frame, cv2.CV_64F, kft1) 
+          + cv2.filter2D(cur_frame, cv2.CV_64F, kft2))
     
     fx /= 4.0
     fy /= 4.0
@@ -149,27 +155,80 @@ def compute_one_optical_flow_horn_shunck(prev_frame, cur_frame,
     u = np.zeros(fx.shape, dtype="float64")
     v = np.zeros(fx.shape, dtype="float64")
     
-    lap_filter = np.array([0, 0.25, 0],
+    lap_filter = np.array([[0, 0.25, 0],
                           [0.25,0,0.25],
-                          [0,0.25,0], dtype="float64")
+                          [0,0.25,0]], dtype="float64")
     
+    converged = False
+    iter_cnt = 0
+    lamb = 0.1
+    print_inc = 5
     
+    while not converged:
+        # MAGIC
+        uav = cv2.filter2D(u, cv2.CV_64F, lap_filter)
+        vav = cv2.filter2D(v, cv2.CV_64F, lap_filter)
+        
+        P = fx*uav + fy*vav + ft
+        D = lamb + fx*fx + fy*fy
+        
+        PD = P/D
+        
+        u = uav - fx*PD
+        v = vav - fy*PD
+                
+        iter_cnt += 1
+        
+        if iter_cnt % print_inc == 0:
+            print("ITERATION", iter_cnt, "DONE...")
+                
+        if iter_cnt >= max_iter:
+            converged = True
+            
     
-
-def compute_optical_flow_horn_shunck(video_frames, kfx, kfy, kft1, kft2):
+    extra = np.zeros_like(u)
+    combo = np.stack([u,v,extra], axis=-1)
+    
+    return combo       
+    
+def compute_optical_flow_horn_shunck(video_frames, kfx, kfy, kft1, kft2,
+                                     max_iter=20):
     all_flow = []
     prev_frame = None
+    #index = 0
         
-    for frame in video_frames:
+    for index, frame in enumerate(video_frames):
+        print("** FRAME", index, "************************")
         if prev_frame is None:
             prev_frame = frame
             
         flow = compute_one_optical_flow_horn_shunck(prev_frame, frame,
-                                                    kfx, kfy, kft1, kft2)
+                                                    kfx, kfy, kft1, kft2,
+                                                    max_iter=max_iter)
         all_flow.append(flow)
         prev_frame = frame
+        #index += 1
         
     return all_flow
+
+
+def make_test_video(image_size=(480,640), frame_cnt=30, inc_x=5, inc_y=0):
+    video_frames = []
+    
+    start_pos = [100,100]
+    end_pos = [200,200]
+    
+    for index in range(frame_cnt):
+        frame = np.zeros(image_size, dtype="float64")
+        cv2.rectangle(frame, start_pos, end_pos, (1.0,), -1)
+        video_frames.append(frame)
+        start_pos[0] += inc_x
+        end_pos[0] += inc_x
+        
+        start_pos[1] += inc_y
+        end_pos[1] += inc_y
+        
+    return video_frames        
 
 ###############################################################################
 # MAIN
@@ -269,12 +328,13 @@ def main():
             gray_image /= 255.0
             
             kernel_size = 17
-            gray_image = cv2.GaussianBlur(gray_image, 
-                                          ksize=(kernel_size, kernel_size),
-                                          sigmaX=0)
+            #gray_image = cv2.GaussianBlur(gray_image, 
+            #                              ksize=(kernel_size, kernel_size),
+            #                              sigmaX=0)
             
             cv2.imshow("GRAY", gray_image)
             
+            '''
             #fx = cv2.filter2D(gray_image, cv2.CV_64F, kfx)
             fx = filter2D(gray_image, kfx)
             
@@ -287,6 +347,7 @@ def main():
             diff_image = np.absolute(diff_image)
             
             cv2.imshow("DIFF", diff_image)
+            '''
             
             video_frames.append(gray_image)
                         
@@ -304,6 +365,9 @@ def main():
     key = -1
     ESC_KEY = 27
     index = 0
+    
+    # OVERRIDE
+    #video_frames = make_test_video(inc_x=0, inc_y=5)
           
     flow_frames = compute_optical_flow_horn_shunck(video_frames, 
                                                     kfx, kfy,
@@ -311,7 +375,7 @@ def main():
         
     while key != ESC_KEY:
         cur_frame = video_frames[index]
-        flow_frame = flow_frames[index]
+        flow_frame = np.absolute(flow_frames[index])
         
         cv2.imshow("ORIGINAL", cur_frame)      
         cv2.imshow("FLOW", flow_frame)  
