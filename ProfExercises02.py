@@ -189,7 +189,20 @@ def compute_one_optical_flow_horn_shunck(prev_frame, cur_frame,
     extra = np.zeros_like(u)
     combo = np.stack([u,v,extra], axis=-1)
     
-    return combo       
+    return combo  
+
+def convert_to_hsv_flow(flow):   
+    mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+    hsv = np.zeros((flow.shape[0], flow.shape[1], 3), dtype="uint8")
+    #print("MIN MAX:", np.amin(ang), np.amax(ang))
+    
+    hsv[...,1] = 255
+    hsv[...,0] = cv2.normalize(ang, None, 0, 255, cv2.NORM_MINMAX) # 255*ang/(2.0*np.pi) # ang*180.0/np.pi
+    hsv[...,2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+    flow = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    
+    return flow
+          
     
 def compute_optical_flow_horn_shunck(video_frames, kfx, kfy, kft1, kft2,
                                      max_iter=20):
@@ -205,6 +218,35 @@ def compute_optical_flow_horn_shunck(video_frames, kfx, kfy, kft1, kft2,
         flow = compute_one_optical_flow_horn_shunck(prev_frame, frame,
                                                     kfx, kfy, kft1, kft2,
                                                     max_iter=max_iter)
+        
+        
+        flow = convert_to_hsv_flow(flow)
+        all_flow.append(flow)
+        prev_frame = frame
+        #index += 1
+        
+    return all_flow
+
+def compute_optical_flow_farneback(video_frames):
+    all_flow = []
+    prev_frame = None
+    #index = 0
+        
+    for index, frame in enumerate(video_frames):
+        print("** FRAME", index, "************************")
+        if prev_frame is None:
+            prev_frame = frame
+            
+        flow = cv2.calcOpticalFlowFarneback(prev_frame, frame,
+                                            None, 0.5, 3, 
+                                            winsize=31, #15,
+                                            iterations=3,
+                                            poly_n=5, 
+                                            poly_sigma=1.2, 
+                                            flags=cv2.OPTFLOW_FARNEBACK_GAUSSIAN)
+                
+        flow = convert_to_hsv_flow(flow)
+                
         all_flow.append(flow)
         prev_frame = frame
         #index += 1
@@ -367,11 +409,13 @@ def main():
     index = 0
     
     # OVERRIDE
-    #video_frames = make_test_video(inc_x=0, inc_y=5)
+    video_frames = make_test_video(inc_x=0, inc_y=5)
           
-    flow_frames = compute_optical_flow_horn_shunck(video_frames, 
-                                                    kfx, kfy,
-                                                    kft1, kft2)
+    #flow_frames = compute_optical_flow_horn_shunck(video_frames, 
+    #                                                kfx, kfy,
+    #                                                kft1, kft2)
+    
+    flow_frames = compute_optical_flow_farneback(video_frames)
         
     while key != ESC_KEY:
         cur_frame = video_frames[index]
