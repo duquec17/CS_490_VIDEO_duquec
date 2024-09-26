@@ -27,6 +27,22 @@ import cv2
 import pandas
 import sklearn
 
+def get_subimage(image, window):
+    # x, y, width, height
+    sr = window[1]
+    er = sr + window[3]
+    sc = window[0]
+    ec = sc + window[2]
+    subimage = image[sr:er, sc:ec]  
+    return subimage
+
+def add_color_noise(image, window):
+    subimage = get_subimage(image, window)
+    for r in range(subimage.shape[0]):
+        for c in range(subimage.shape[1]):
+            subimage[r,c,:] += np.random.uniform(0, 20, (3,)).astype("uint8")
+
+
 def make_bounce_video(image_shape=(480,640,3),
                       frame_cnt=30,
                       start_pos=(100,300),
@@ -42,10 +58,24 @@ def make_bounce_video(image_shape=(480,640,3),
     velocity *= speed_factor
     accel *= speed_factor
     
-    for i in range(frame_cnt):
+    r = 255
+    g = 0
+    b = 255
+    
+    for i in range(frame_cnt):       
         image = np.zeros(image_shape, dtype="uint8")
-        cv2.circle(image, pos, radius, (0,0,255), -1)
+        cv2.circle(image, pos, radius, (b,g,r), -1)
         all_frames.append(image)
+        
+        #r -= 1
+        #g += 1
+        r = max(r, 0)
+        g = min(g, 255)
+        
+        radius += 3
+        
+        #window = (pos[0] - radius, pos[1] - radius, 2*radius, 2*radius)
+        #add_color_noise(image, window)
         
         pos += velocity
         velocity += accel
@@ -56,13 +86,28 @@ def make_bounce_video(image_shape=(480,640,3),
     
     return all_frames  
 
-'''
-def check_track(image, window):
-    sr = window[1]
-    er = sr + window[3]
-    #sc = 
-    subimage = image[]       
-'''   
+
+def get_hue_mask(hsv):
+    return cv2.inRange(hsv, (0.0, 60.0, 32.0), (180.0, 255.0, 255.0))
+
+def get_model_hue_histogram(image, window):
+    subimage = get_subimage(image, window)
+    hsv = cv2.cvtColor(subimage, cv2.COLOR_BGR2HSV)
+    mask = get_hue_mask(hsv)
+    hist = cv2.calcHist([hsv], [0], mask, [180], [0,180])
+    cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
+    return hist
+
+def check_track(image, window, threshold):
+    # x, y, width, height    
+    subimage = get_subimage(image, window) 
+    aveval = np.mean(subimage) 
+    
+    print("AVE:", aveval) 
+    
+    return (aveval >= threshold)
+
+   
 
 ###############################################################################
 # MAIN
@@ -157,7 +202,7 @@ def main():
     pos = (100,100)
     radius = 40
     frame_cnt = 60
-    speed_factor = 20
+    speed_factor = 1 #2
     video_frames = make_bounce_video(start_pos=pos, 
                                      frame_cnt=frame_cnt,
                                      radius=radius,
@@ -166,13 +211,28 @@ def main():
     # x,y,width,height
     track_window = (pos[0]-radius, pos[1]-radius, 2*radius, 2*radius)
     
+    model_hist = get_model_hue_histogram(video_frames[0], track_window)
+    print("HIST:")
+    for i in range(len(model_hist)):
+        print(i, ":", model_hist[i])    
+    
     criteria = (cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 10, 1)
        
     while key != ESC_KEY:
         cur_frame = video_frames[index]
-        
+                
+        hsv_image = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2HSV)
+        mask = get_hue_mask(hsv_image)
+        back_image = cv2.calcBackProject([hsv_image], [0], model_hist, [0,180],1)
+        back_image *= mask
+                
         input_image = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2GRAY)
-        ret, track_window = cv2.meanShift(input_image, track_window, criteria)
+        
+        #ret, track_window = cv2.meanShift(input_image, track_window, criteria)
+        ret, track_window = cv2.meanShift(back_image, track_window, criteria)
+        
+        #if not check_track(input_image, track_window, threshold=0.5):
+        #    print("LOST THE TRACKING!!!!!!")
         
         track_image = np.copy(cur_frame)
         
@@ -182,6 +242,7 @@ def main():
                       (0,255,0), 2)
         
         cv2.imshow("ORIGINAL", cur_frame) 
+        cv2.imshow("BACK PROJECT", back_image*255)
         cv2.imshow("TRACKED", track_image)      
         key = cv2.waitKey(33)
                 
