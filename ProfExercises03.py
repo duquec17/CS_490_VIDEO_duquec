@@ -26,6 +26,7 @@ import torch
 import cv2
 import pandas
 import sklearn
+import math as m
 
 def get_subimage(image, window):
     # x, y, width, height
@@ -62,10 +63,17 @@ def make_bounce_video(image_shape=(480,640,3),
     g = 0
     b = 255
     
+    rad2 = radius
+    angle = 0
+    angleInc = 5
+    
     for i in range(frame_cnt):       
         image = np.zeros(image_shape, dtype="uint8")
-        cv2.circle(image, pos, radius, (b,g,r), -1)
+        #cv2.circle(image, pos, radius, (b,g,r), -1)
+        cv2.ellipse(image, pos, (radius, rad2), angle, 0, 360, (0,0,255), -1)
         all_frames.append(image)
+        
+        angle += angleInc
         
         #r -= 1
         #g += 1
@@ -217,9 +225,27 @@ def main():
         print(i, ":", model_hist[i])    
     
     criteria = (cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 10, 1)
+    
+    mouse_pos = [0,0]
+    
+    def mouse_func(action, x, y, flags, *userdata):        
+        #if action == cv2.EVENT_LBUTTONDOWN:
+        print("MOUSE:", x, y)
+        mouse_pos[0] = x
+        mouse_pos[1] = y
+            
+    cv2.namedWindow("TRACKED")
+    cv2.setMouseCallback("TRACKED", mouse_func)
+    
+    blank_frame = np.zeros((480,640,3), dtype="uint8")
        
     while key != ESC_KEY:
-        cur_frame = video_frames[index]
+        #cur_frame = video_frames[index]
+        
+        blank_frame[:,:,:] = 0
+        cur_frame = blank_frame        
+        cv2.circle(cur_frame, mouse_pos, 20, (0,0,255), -1)
+        print("CIRCLE:", mouse_pos)
                 
         hsv_image = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2HSV)
         mask = get_hue_mask(hsv_image)
@@ -229,17 +255,28 @@ def main():
         input_image = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2GRAY)
         
         #ret, track_window = cv2.meanShift(input_image, track_window, criteria)
-        ret, track_window = cv2.meanShift(back_image, track_window, criteria)
+        #ret, track_window = cv2.meanShift(back_image, track_window, criteria)
+        rot_window, track_window = cv2.CamShift(back_image,
+                                                track_window, 
+                                                criteria)
+        
+        
         
         #if not check_track(input_image, track_window, threshold=0.5):
         #    print("LOST THE TRACKING!!!!!!")
         
         track_image = np.copy(cur_frame)
         
-        cv2.rectangle(track_image, track_window[0:2],
-                      (track_window[0]+track_window[2], 
-                       track_window[1]+track_window[3]),
-                      (0,255,0), 2)
+        # Mean shift drawing
+        #cv2.rectangle(track_image, track_window[0:2],
+        #              (track_window[0]+track_window[2], 
+        #               track_window[1]+track_window[3]),
+        #              (0,255,0), 2)
+        
+        pts = cv2.boxPoints(rot_window)
+        pts = np.intp(pts)
+        cv2.polylines(track_image, [pts], True, (0,255,0), 2)
+        
         
         cv2.imshow("ORIGINAL", cur_frame) 
         cv2.imshow("BACK PROJECT", back_image*255)
