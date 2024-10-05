@@ -29,6 +29,8 @@ class OPTICAL_FLOW(Enum):
 ###############################################################################
 
 def compute_video_derivatives(video_frames, size):
+    
+    
     return
 
 def compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter, max_error, weight=1.0):
