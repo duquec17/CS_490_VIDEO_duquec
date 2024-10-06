@@ -111,9 +111,67 @@ def compute_video_derivatives(video_frames, size):
     return all_fx, all_fy, all_ft
 
 def compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter, max_error, weight=1.0):
-    return
+    # Baseline Horn Shunck code
+    u = np.zeros(fx.shape, dtype="float64")
+    v = np.zeros(fx.shape, dtype="float64")
+    
+    lap_filter = np.array([[0, 0.25, 0],
+                          [0.25,0,0.25],
+                          [0,0.25,0]], dtype="float64")
+    
+    # Filters for kf_x and kf_y to find u and V derivatives
+    kf_x =  np.array([[-1,1]], dtype="float64").reshape(1,2)
+    kf_y =  np.array([[-1],
+                      [1]], dtype="float64").reshape(2,1)
+    
+    # List of variables necessary for calculations
+    converged = False
+    iter_cnt = 0
+    lamb = weight
+    print_inc = 5
+    prev_error = float('inc')
+    
+    while not converged:
+        # MAGIC
+        uav = cv2.filter2D(u, cv2.CV_64F, lap_filter)
+        vav = cv2.filter2D(v, cv2.CV_64F, lap_filter)
+        
+        # Update flow fields using horn-shunck equations
+        P = fx*uav + fy*vav + ft
+        D = lamb + fx*fx + fy*fy
+        PD = P/D
+        
+        u_new = uav - fx*PD
+        v_new = vav - fy*PD
+        
+        # Compute 
+        u_x = cv2.filter2D(u_new, cv2.CV_64F,kf_x)
+        u_y = cv2.filter2D(u_new, cv2.CV_64F,kf_y)
+        v_x = cv2.filter2D(v_new, cv2.CV_64F,kf_x)
+        v_y = cv2.filter2D(v_new, cv2.CV_64F,kf_y)
+        
+        error = np.mean(np.abs(u_x + u_y + v_x + v_y))
+        
+        iter_cnt += 1
+        
+        # Print iteration count periodically
+        if iter_cnt % print_inc == 0:
+            print("ITERATION", iter_cnt, "Done...Error:", error)
+        
+        # Break if the number of iterations is greater tha or equal to max_iter
+        if iter_cnt >= max_iter or error <= max_error:
+            converged = True
+            
+    # Make a 3-channel (u, v, 0)image with 3rd channel as zeroes 
+    extra = np.zeros_like(u)
+    combo = np.stack([u,v,extra], axis=-1)
+    
+    # Return the compute flow (combo), the final cost (error), and the number of iterations
+    return combo, error, iter_cnt
 
 def compute_optical_flow(video_frames, method=OPTICAL_FLOW.HORN_SHUNCK, max_iter=10, max_error=1e-4, horn_weight=1.0, kanade_win_size=10):
+    
+    
     return
 
 ###############################################################################
