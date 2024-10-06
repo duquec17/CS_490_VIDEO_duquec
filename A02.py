@@ -12,6 +12,7 @@
 from pathlib import Path
 import sys
 import cv2
+import numpy as np
 import os 
 import shutil
 
@@ -20,6 +21,8 @@ import shutil
 ###############################################################################
 
 from enum import Enum
+
+import A01
 class OPTICAL_FLOW(Enum):
     HORN_SHUNCK="horn_shunck"
     LUCAS_KANADE="lucas_kanade"
@@ -28,8 +31,38 @@ class OPTICAL_FLOW(Enum):
 # Definitions of functions
 ###############################################################################
 
+
 def compute_video_derivatives(video_frames, size):
+    # Check size of video frame enter branch based on size
     
+    if size == 2:
+        # Applies following filter for size of 2
+        kfx = np.array([[-1,1],
+                        [-1,1]], dtype="float64")
+        kfy = np.array([[-1,-1],
+                        [1,1]], dtype="float64")
+        kft1 = np.array([[-1,-1],
+                         [-1,-1]], dtype="float64")
+        kft2 = np.array([[1,1],
+                         [1,1]], dtype="float64")
+        
+    elif size == 3:
+        # Applies following filter for size of 3
+        kfx = np.array([[-1,0,1],
+                        [-2,0,2],
+                        [-1,0,1]], dtype="float64")
+        kfy = np.array([[-1,-2,-1],
+                        [0,0,0],
+                        [1,2,1]], dtype="float64")
+        kft1 = np.array([[-1,-2,-1],
+                         [-2,-4,-2],
+                         [-1,-2,-1]], dtype="float64")
+        kft2 = np.array([[1,2,1],
+                         [2,4,2],
+                         [1,2,1]], dtype="float64")
+        
+    elif size != 2 and size != 3:
+        return None
     
     return
 
