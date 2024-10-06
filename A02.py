@@ -170,9 +170,26 @@ def compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter, max_error, weight
     return combo, error, iter_cnt
 
 def compute_optical_flow(video_frames, method=OPTICAL_FLOW.HORN_SHUNCK, max_iter=10, max_error=1e-4, horn_weight=1.0, kanade_win_size=10):
+    # Array for optical flow
+    optical_flows = []
     
+    # Compute the derivatives for the video frames
+    fx_list, fy_list, ft_list = compute_video_derivatives(video_frames, size=3)
     
-    return
+    for i in range(1, len(video_frames)):
+        fx = fx_list[i]
+        fy = fy_list[i]
+        ft = ft_list[i]
+
+        # If the method is Horn Shunck, use a derivative window size of 2
+        if method == OPTICAL_FLOW.HORN_SHUNCK:
+            flow, error, iterations = compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter=max_iter, max_error=max_error, weight=horn_weight)
+        elif method == OPTICAL_FLOW.LUCAS_KANADE:
+            flow = compute_one_optical_flow_lucas_kanade(video_frames[i-1], video_frames[i], kanade_win_size=kanade_win_size)
+            
+        optical_flows.append(flow)
+            
+    return optical_flows
 
 ###############################################################################
 # Main function for debugging purposes
