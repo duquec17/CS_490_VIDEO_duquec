@@ -45,7 +45,6 @@ def compute_video_derivatives(video_frames, size):
                          [-1,-1]], dtype="float64")
         kft2 = np.array([[1,1],
                          [1,1]], dtype="float64")
-        
     elif size == 3:
         # Applies following filter for size of 3
         kfx = np.array([[-1,0,1],
@@ -60,11 +59,56 @@ def compute_video_derivatives(video_frames, size):
         kft2 = np.array([[1,2,1],
                          [2,4,2],
                          [1,2,1]], dtype="float64")
-        
-    elif size != 2 and size != 3:
+    else:
         return None
     
-    return
+    # Lists that hold all results
+    all_fx = []
+    all_fy = []
+    all_ft = []
+    
+    # Previous frame tracker
+    prev_frame = None
+    
+    # Loop through each pair of frames in video
+    for frame in video_frames:
+        # Convert the iamge to a grayscale, float64 image with range [0, 1]
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray_frame = gray_frame.astype(np.float64) / 255.0
+        
+        # If previous frame is not set, set it to the current frame (repeating the first frame)
+        if prev_frame is None:
+            prev_frame = gray_frame.copy() 
+            
+        # Apply Filters
+        fx = cv2.filter2D(gray_frame, -1, kfx)
+        fy = cv2.filter2D(gray_frame, -1, kfy)
+        ft1 = cv2.filter2D(prev_frame, -1, kft1)
+        ft2 = cv2.filter2D(gray_frame, -1, kft2)
+        
+        # Calculate ft through difference
+        ft = ft1 - ft2
+        
+        # Scale the results
+        if size == 2:
+            fx /= 4.0
+            fy /= 4.0
+            ft /= 4.0
+        elif size == 3:
+            fx /= 8.0
+            fy /= 8.0
+            ft /= 16.0
+            
+        # Append results to lists
+        all_fx.append(fx)
+        all_fy.append(fy)
+        all_ft.append(ft)
+        
+        # Set previous frame to current frame
+        prev_frame = gray_frame.copy()
+    
+    # Return three lists
+    return all_fx, all_fy, all_ft
 
 def compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter, max_error, weight=1.0):
     return
