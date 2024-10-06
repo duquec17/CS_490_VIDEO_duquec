@@ -180,7 +180,19 @@ def compute_optical_flow(video_frames, method=OPTICAL_FLOW.HORN_SHUNCK, max_iter
         size = 3
         
     # Compute the derivatives for the video frames
+    fx_list, fy_list, ft_list = compute_video_derivatives(video_frames, size=size)
     
+    for i in range(1,len(video_frames)):
+        fx = fx_list[i]
+        fy = fy_list[i]
+        ft = ft_list[i]
+        
+    if method == OPTICAL_FLOW.HORN_SHUNCK:
+        flow, error, iterations = compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter=max_iter, max_error=max_error, weight=horn_weight)
+    elif method == OPTICAL_FLOW.LUCAS_KANADE:
+        flow = compute_one_optical_flow_lucas_kanade(video_frames[i-1], video_frames[i], kanade_win_size=kanade_win_size)
+    
+    optical_flows.append(flow)
     
     return optical_flows
 
