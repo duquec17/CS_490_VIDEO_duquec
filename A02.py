@@ -34,7 +34,6 @@ class OPTICAL_FLOW(Enum):
 
 def compute_video_derivatives(video_frames, size):
     # Check size of video frame enter branch based on size
-    
     if size == 2:
         # Applies following filter for size of 2
         kfx = np.array([[-1,1],
@@ -60,6 +59,7 @@ def compute_video_derivatives(video_frames, size):
                          [2,4,2],
                          [1,2,1]], dtype="float64")
     else:
+        # Otherwise, return None
         return None
     
     # Lists that hold all results
@@ -81,13 +81,18 @@ def compute_video_derivatives(video_frames, size):
             prev_frame = gray_frame.copy() 
             
         # Apply Filters
-        fx = cv2.filter2D(gray_frame, -1, kfx)
-        fy = cv2.filter2D(gray_frame, -1, kfy)
-        ft1 = cv2.filter2D(prev_frame, -1, kft1)
-        ft2 = cv2.filter2D(gray_frame, -1, kft2)
+        fx1 = cv2.filter2D(prev_frame, cv2.CV_64F, kfx)
+        fy1 = cv2.filter2D(prev_frame, cv2.CV_64F, kfy)
+        fx2 = cv2.filter2D(gray_frame, cv2.CV_64F, kfx)
+        fy2 = cv2.filter2D(gray_frame, cv2.CV_64F, kfy)
+        
+        ft1 = cv2.filter2D(prev_frame, cv2.CV_64F, kft1)
+        ft2 = cv2.filter2D(gray_frame, cv2.CV_64F, kft2)
         
         # Calculate ft through difference
-        ft = ft1 - ft2
+        ft = ft1 + ft2
+        fy = fy1 + fy2
+        fx = fx1 + fx2
         
         # Scale the results
         if size == 2:
@@ -129,7 +134,6 @@ def compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter, max_error, weight
     iter_cnt = 0
     lamb = weight
     print_inc = 5
-    prev_error = float('inc')
     
     while not converged:
         # MAGIC
@@ -141,16 +145,19 @@ def compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter, max_error, weight
         D = lamb + fx*fx + fy*fy
         PD = P/D
         
-        u_new = uav - fx*PD
-        v_new = vav - fy*PD
+        u = uav - fx*PD
+        v = vav - fy*PD
         
         # Compute 
-        u_x = cv2.filter2D(u_new, cv2.CV_64F,kf_x)
-        u_y = cv2.filter2D(u_new, cv2.CV_64F,kf_y)
-        v_x = cv2.filter2D(v_new, cv2.CV_64F,kf_x)
-        v_y = cv2.filter2D(v_new, cv2.CV_64F,kf_y)
+        u_x = cv2.filter2D(u, cv2.CV_64F,kf_x)
+        u_y = cv2.filter2D(u, cv2.CV_64F,kf_y)
+        v_x = cv2.filter2D(v, cv2.CV_64F,kf_x)
+        v_y = cv2.filter2D(v, cv2.CV_64F,kf_y)
         
-        error = np.mean(np.abs(u_x + u_y + v_x + v_y))
+        smooth_error = lamb*(u_x*u_x + u_y*u_y + v_x*v_x + v_y*v_y)
+        bright_error = fx*u + fy*v + ft
+        bright_error*=bright_error
+        error = np.mean(smooth_error + bright_error)
         
         iter_cnt += 1
         
@@ -176,23 +183,19 @@ def compute_optical_flow(video_frames, method=OPTICAL_FLOW.HORN_SHUNCK, max_iter
     # If the method is Horn Shunck, use a derivative window size of 2
     if method == OPTICAL_FLOW.HORN_SHUNCK:
         size = 2
-    else:
-        size = 3
         
     # Compute the derivatives for the video frames
     fx_list, fy_list, ft_list = compute_video_derivatives(video_frames, size=size)
     
-    for i in range(1,len(video_frames)):
+    for i in range(len(video_frames)):
         fx = fx_list[i]
         fy = fy_list[i]
         ft = ft_list[i]
         
-    if method == OPTICAL_FLOW.HORN_SHUNCK:
-        flow, error, iterations = compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter=max_iter, max_error=max_error, weight=horn_weight)
-    elif method == OPTICAL_FLOW.LUCAS_KANADE:
-        flow = compute_one_optical_flow_lucas_kanade(video_frames[i-1], video_frames[i], kanade_win_size=kanade_win_size)
-    
-    optical_flows.append(flow)
+        if method == OPTICAL_FLOW.HORN_SHUNCK:
+            flow, error, iterations = compute_one_optical_flow_horn_shunck(fx, fy, ft, max_iter=max_iter, max_error=max_error, weight=horn_weight)
+        
+        optical_flows.append(flow)
     
     return optical_flows
 
