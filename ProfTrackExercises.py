@@ -304,6 +304,31 @@ def get_block_averages(all_frames, win_size):
         
     return block_images
 
+def get_bound_box_image(image, box):
+    # (ymin, xmin, ymax, xmax)
+    ymin, xmin, ymax, xmax = box
+    subimage = image[ymin:ymax, xmin:xmax, :]
+    return subimage
+
+def get_color_similarity(image, target):
+    image = image - target
+    image = image*image
+    image = np.sum(image, axis=2, keepdims=True)
+    image = np.sqrt(image)
+    image /= 255.0
+    image = 1.0 - image
+    return image
+
+def get_hue_mask(hsv):
+    return cv2.inRange(hsv, (0.0, 60.0, 32.0), (180.0, 255.0, 255.0))
+
+def get_model_hue_histogram(subimage):    
+    hsv = cv2.cvtColor(subimage, cv2.COLOR_BGR2HSV)
+    mask = get_hue_mask(hsv)
+    hist = cv2.calcHist([hsv], [0], mask, [180], [0,180])
+    cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
+    return hist
+
 ###############################################################################
 # MAIN
 ###############################################################################
@@ -388,7 +413,9 @@ def main():
     kft2 = np.array([[1,1],
                      [1,1]], dtype="float64")
     
-    video_frames = []    
+    video_frames = []   
+    
+    box = (210, 150, 310, 230) 
     
     while key == -1:
         # Get next frame from capture
@@ -397,6 +424,28 @@ def main():
         if ret == True:        
             # Show the image
             cv2.imshow(windowName, frame)
+            
+            subimage = get_bound_box_image(frame, box)
+            cv2.imshow("ITEM", subimage)
+            model_hist = get_model_hue_histogram(subimage)
+            
+            ave_color = np.mean(subimage, axis=(0,1))
+            print("AVE:", ave_color)
+            
+            color_heat = get_color_similarity(frame, ave_color)
+            cv2.imshow("COLOR", color_heat)
+            
+            hsv_image = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            mask = get_hue_mask(hsv_image)
+            back_image = cv2.calcBackProject([hsv_image], [0], model_hist, [0,180],1)
+            back_image = back_image.astype("float64")
+            mask = mask.astype("float64")
+            mask /= 255.0
+            back_image *= mask
+            back_image /= 255.0
+            
+            print(np.amax(back_image))
+            cv2.imshow("BACK PROJECT", back_image) #*255)
             
             gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).astype("float64")
             gray_image /= 255.0
@@ -420,20 +469,21 @@ def main():
     # Release the capture and destroy the window
     capture.release()
     cv2.destroyAllWindows()
+       
     
     key = -1
     ESC_KEY = 27
     index = 0
     
     # OVERRIDE
-    #video_frames = make_test_video(inc_x=0, inc_y=5)
+    video_frames = make_test_video(inc_x=0, inc_y=5)
           
     flow_frames = compute_optical_flow_horn_shunck(video_frames, 
                                                     kfx, kfy,
                                                     kft1, kft2)
     
-    flow_frames = detect_motion(flow_frames)
-    flow_frames = get_block_averages(flow_frames, win_size=30)
+    #flow_frames = detect_motion(flow_frames)
+    #flow_frames = get_block_averages(flow_frames, win_size=30)
     
     #flow_frames = compute_optical_flow_farneback(video_frames)
         
@@ -441,6 +491,12 @@ def main():
         cur_frame = video_frames[index]
         flow_frame = np.absolute(flow_frames[index])
         
+        subimage = get_bound_box_image(flow_frames[index], box)
+        cv2.imshow("ITEM", subimage)
+        
+        ave_flow = np.mean(subimage, axis=(0,1))
+        print("AVE:", ave_flow)
+                    
         cv2.imshow("ORIGINAL", cur_frame)      
         cv2.imshow("FLOW", flow_frame)  
         key = cv2.waitKey(33)
