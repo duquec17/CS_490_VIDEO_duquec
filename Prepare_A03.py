@@ -23,6 +23,7 @@ def main():
     dog_url = "https://huggingface.co/datasets/l-lt/LaSOT/resolve/main/dog.zip"
     zip_filename = "dog.zip"
     data_dir = os.path.join(".", "data")
+    os.makedirs(data_dir, exist_ok=True)
     download_file(dog_url, data_dir, zip_filename)
     out_data_dir = os.path.join(data_dir, Path(zip_filename).stem)
     
