@@ -284,7 +284,14 @@ def get_block_averages(all_frames, win_size):
                 one_block_image[row:(row+win_size), col:(col+win_size)] = ave_val
         block_images.append(one_block_image)
         
-    return block_images
+    return 
+
+def get_bound_box_image(image, box):
+    # (ymin, xmin, ymax, xmax)
+    ymin, xmin, ymax, xmax = box
+    subimage = image[ymin:ymax, xmin:xmax, :]
+    return subimage
+
 
 ###############################################################################
 # MAIN
@@ -372,6 +379,8 @@ def main():
     
     video_frames = []    
     
+    box = (100, 200, 500, 300)
+    
     while key == -1:
         # Get next frame from capture
         ret, frame = capture.read()
@@ -379,6 +388,12 @@ def main():
         if ret == True:        
             # Show the image
             cv2.imshow(windowName, frame)
+            
+            subimage = get_bound_box_image
+            cv2.imshow("ITEM", subimage)
+            
+            ave_color = np.mean(subimage, axis=(0,1))
+            print("AVE:", ave_color)
             
             gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).astype("float64")
             gray_image /= 255.0
