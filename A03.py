@@ -30,13 +30,6 @@ def track_doggo(video_frames, first_box):
     model_hist = cv2.calcHist([object_region], [0,1], None, [180,256], [0,180,0,256])
     cv2.normalize(model_hist, model_hist, 0, 255, cv2.NORM_MINMAX)
     
-    # Create kernels for optical flow
-    kfx = np.array([[1,0,-1], [2,0,-2], [1,0,-1]])
-    kfy= np.array([[1,2,1], [0,0,0], [-1,-2,-1]])
-    kft1 = np.zeros_like(kfx)
-    kft2 = np.zeros_like(kfy)
-
-    
     # Tracking each frame
     for frame in video_frames[1:]:
         hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
