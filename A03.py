@@ -12,14 +12,12 @@
 
 import sys
 import numpy as np
-import torch
 import cv2
-import pandas
-import sklearn
+
 
 def track_doggo(video_frames, first_box):
     # Initial list/tuple bounding box (ymin, xmin, ymax, xmax)
-    ymin, xmin, ymax, xmax = box
+    ymin, xmin, ymax, xmax = first_box
     box = (xmin, ymin, xmax-xmin, ymax-ymin)
     
     # Initialize tracking list with the first bounding box
@@ -39,10 +37,12 @@ def track_doggo(video_frames, first_box):
         
         # Apply CamShift to get the new location
         ret, box = cv2.CamShift(back_proj, box, (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1,))
-        x,y,w,h = box
+        pts = cv2.boxPoints(ret)
+        
         
         # Update bounding box and add to the list
-        updated_box = (int(y), int(x), int(y+h), int(x+w))
-        tracked_boxes.append(updated_box)
+        updated_box = cv2.boundingRect(pts)
+        xmin, ymin, w, h = updated_box
+        tracked_boxes.append((ymin,xmin,ymin+h,xmin+w))
     
-    return
+    return tracked_boxes
