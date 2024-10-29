@@ -15,6 +15,28 @@ import numpy as np
 import cv2
 
 
+def find_center(ymax,ymin,xmax,xmin):
+    # Calculate half size from the center
+    original_height = ymax - ymin
+    original_width = xmax - xmin
+    
+    # Find the center of the bounding box
+    center_y = ymin + original_height // 3
+    center_x = xmin + original_width // 2
+
+    # Calculate new boundaries to form a region half the original size
+    new_height = original_height // 3
+    new_width = original_width // 2
+
+    # Define the new region centered within the original bounding box
+    ymin_new = center_y - new_height // 3
+    ymax_new = center_y + new_height // 3
+    xmin_new = center_x - new_width // 2
+    xmax_new = center_x + new_width // 2
+    
+    return ymin_new, ymax_new, xmin_new,xmax_new
+
+
 def track_doggo(video_frames, first_box):
     
     # Initial bounding box setup (ymin, xmin, ymax, xmax)
@@ -28,13 +50,20 @@ def track_doggo(video_frames, first_box):
     initial_frame = video_frames[0]
     hsv_frame = cv2.cvtColor(initial_frame, cv2.COLOR_BGR2HSV)
     object_region = hsv_frame[ymin:ymax, xmin:xmax]
+    
+    # Assign new bounding box values
+    ymin_new, ymax_new, xmin_new,xmax_new = find_center(ymax, ymin, xmax, xmin)
+
+    # Extract the half-size object region
+    object_region = hsv_frame[ymin_new:ymax_new, xmin_new:xmax_new]
+    
     #object_region = object_region[10:-50, 40:-20]
     # kmean = color cluster 
     # take all pixels inside initial bounding box and take 50% box 
     # is most represented to create and apply mask
     # Simplified: Find color most part of the dog and segment it out into groups
     # First try: Cut the bounding box in half and find histogram 
-    # Create heat map to scale based on what is dog (1), maybe dog(.5), and unsure (.1)
+    # Create heat map to scale based on what is dog (1), maybe dog(0.5), and unsure (.1)
     
     cv2.imshow("DOG", object_region)
     cv2.waitKey(-1)
