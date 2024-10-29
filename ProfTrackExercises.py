@@ -329,6 +329,20 @@ def get_model_hue_histogram(subimage):
     cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
     return hist
 
+def cluster_colors(image):
+    samples = image.astype("float32")
+    samples = np.reshape(samples, [-1, 3])
+    # https://docs.opencv.org/4.x/d1/d5c/tutorial_py_kmeans_opencv.html
+    ret, labels, centers = cv2.kmeans(samples, 4, None, 
+                                      (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0),
+                                      10,cv2.KMEANS_RANDOM_CENTERS)
+    print(labels)
+    print(centers)
+    recolor = centers[labels.flatten()]
+    recolor = np.reshape(recolor, image.shape)
+    recolor /= 255.0
+    return recolor
+
 ###############################################################################
 # MAIN
 ###############################################################################
@@ -423,7 +437,10 @@ def main():
         
         if ret == True:        
             # Show the image
+            
+            frame = cluster_colors(frame)
             cv2.imshow(windowName, frame)
+            
             
             subimage = get_bound_box_image(frame, box)
             cv2.imshow("ITEM", subimage)
