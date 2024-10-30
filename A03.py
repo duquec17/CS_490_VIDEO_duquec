@@ -31,8 +31,8 @@ def find_center(ymax,ymin,xmax,xmin):
     # Define the new region centered within the original bounding box
     ymin_new = center_y - new_height // 3
     ymax_new = center_y + new_height // 3
-    xmin_new = center_x - new_width // 2
-    xmax_new = center_x + new_width // 2
+    xmin_new = center_x - new_width // 3
+    xmax_new = center_x + new_width // 3
     
     return ymin_new, ymax_new, xmin_new,xmax_new
 
@@ -68,10 +68,8 @@ def track_doggo(video_frames, first_box):
     cv2.imshow("DOG", object_region)
     cv2.waitKey(-1)
     model_hist = cv2.calcHist([object_region], [0, 1], None, [180, 256], [0, 180, 0, 256])
-    #model_hist = cv2.calcHist([object_region], [0], None, [180], [0, 180])
     
     model_hist = cv2.normalize(model_hist, model_hist, 0, 255, cv2.NORM_MINMAX)
-    
     
     # Initialize Kalman Filter with state for x, y, width, height and velocities
     kalman = cv2.KalmanFilter(6, 4)
@@ -93,15 +91,6 @@ def track_doggo(video_frames, first_box):
         # Apply Gaussian blur to smooth back projection and reduce noise
         back_proj = cv2.GaussianBlur(back_proj, (5, 5), 0)
         
-        '''
-        # Add edge detection for refined contour support
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray_frame, 100,200)
-        back_proj = cv2.bitwise_and(back_proj, back_proj, mask=edges)
-        '''
-        
-        #print(np.amin(back_proj), np.amax(back_proj))
-        
         #print(back_proj.shape)
         cv2.imshow("BACKPROJ", back_proj)
         cv2.waitKey(-1)
@@ -112,19 +101,12 @@ def track_doggo(video_frames, first_box):
         
         # Get bounding box parameters from CamShift results
         xmin, ymin, w, h = cv2.boundingRect(np.int0(pts))
-        xmax, ymax = xmin + w, ymin + h * 2
+        # Scale bounding box by 2 to increase detection chance
+        xmax, ymax = xmin + w , ymin + h * 2
 
         # Ensure box stays within frame boundaries
         height, width = frame.shape[:2]
         xmin, ymin, xmax, ymax = max(0, xmin), max(0, ymin), min(width, xmax), min(height, ymax)
-        
-        # Kalman filter prediction and correction with bounding box center and size
-        measurement = np.array([[np.float32(xmin + w / 2)], [np.float32(ymin + h / 2)], [np.float32(w)], [np.float32(h)]])
-        kalman.correct(measurement)
-        xmin = int(measurement[0] - w/2)
-        ymin = int(measurement[1] - h/2)
-        xmax = int(measurement[0] + w/2)
-        ymax = int(measurement[1] + h/2)
 
         # Add current version of box to list to later calculate
         tracked_boxes.append((ymin, xmin, ymax, xmax))
