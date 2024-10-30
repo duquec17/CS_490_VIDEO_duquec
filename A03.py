@@ -14,8 +14,9 @@ import sys
 import numpy as np
 import cv2
 
-
-def find_center(ymax,ymin,xmax,xmin):
+# Function to find center of bounding box and pass new bounding box corner points 
+def shrink_box(ymax,ymin,xmax,xmin):
+    
     # Calculate half size from the center
     original_height = ymax - ymin
     original_width = xmax - xmin
@@ -24,35 +25,35 @@ def find_center(ymax,ymin,xmax,xmin):
     center_y = ymin + original_height // 3
     center_x = xmin + original_width // 2
 
-    # Calculate new boundaries to form a region half the original size
+    # Calculate new height and width to form 1/3:x and 1/2:y 
     new_height = original_height // 3
     new_width = original_width // 2
 
     # Define the new region centered within the original bounding box
     ymin_new = center_y - new_height // 3
     ymax_new = center_y + new_height // 3
-    xmin_new = center_x - new_width // 3
-    xmax_new = center_x + new_width // 3
+    xmin_new = center_x - new_width // 2
+    xmax_new = center_x + new_width // 2
     
     return ymin_new, ymax_new, xmin_new,xmax_new
 
 
 def track_doggo(video_frames, first_box):
     
-    # Initial bounding box setup (ymin, xmin, ymax, xmax)
+    #1. Initial bounding box setup (ymin, xmin, ymax, xmax)
     ymin, xmin, ymax, xmax = first_box
     box = (xmin, ymin, xmax - xmin, ymax - ymin)
     
-    # Initialize tracking list with the first bounding box
+    #2. Initialize tracking list with the first bounding box
     tracked_boxes = [first_box]
     
-    # Initial model histogram from the first bounding box with H & S channels
+    #3. Initial model histogram from the first bounding box with H & S channels
     initial_frame = video_frames[0]
     hsv_frame = cv2.cvtColor(initial_frame, cv2.COLOR_BGR2HSV)
     object_region = hsv_frame[ymin:ymax, xmin:xmax]
     
-    # Assign new bounding box values
-    ymin_new, ymax_new, xmin_new,xmax_new = find_center(ymax, ymin, xmax, xmin)
+    #4. Assign new bounding box values
+    ymin_new, ymax_new, xmin_new,xmax_new = shrink_box(ymax, ymin, xmax, xmin)
 
     # Extract the half-size object region
     object_region = hsv_frame[ymin_new:ymax_new, xmin_new:xmax_new]
@@ -102,7 +103,7 @@ def track_doggo(video_frames, first_box):
         # Get bounding box parameters from CamShift results
         xmin, ymin, w, h = cv2.boundingRect(np.int0(pts))
         # Scale bounding box by 2 to increase detection chance
-        xmax, ymax = xmin + w , ymin + h * 2
+        xmax, ymax = xmin + w * 12//10 , ymin + h * 18//10
 
         # Ensure box stays within frame boundaries
         height, width = frame.shape[:2]
