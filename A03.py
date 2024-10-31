@@ -39,7 +39,8 @@ def shrink_box(ymax,ymin,xmax,xmin):
     ymax_new = center_y + new_height // 3
     xmin_new = center_x - new_width // 2
     xmax_new = center_x + new_width // 2
-
+    
+    # Return the coordinates of the smaller, centered bounding box
     return ymin_new, ymax_new, xmin_new,xmax_new
 
 
