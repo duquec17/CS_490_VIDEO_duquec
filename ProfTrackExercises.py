@@ -329,20 +329,80 @@ def get_model_hue_histogram(subimage):
     cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
     return hist
 
-def cluster_colors(image):
+def cluster_colors(image, k):
     samples = image.astype("float32")
     samples = np.reshape(samples, [-1, 3])
     # https://docs.opencv.org/4.x/d1/d5c/tutorial_py_kmeans_opencv.html
-    ret, labels, centers = cv2.kmeans(samples, 4, None, 
-                                      (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0),
-                                      10,cv2.KMEANS_RANDOM_CENTERS)
+    ret, labels, centers = cv2.kmeans(samples, k, None, 
+                                      (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 70, 0.1),
+                                      3,cv2.KMEANS_RANDOM_CENTERS)
     print(labels)
     print(centers)
     recolor = centers[labels.flatten()]
     recolor = np.reshape(recolor, image.shape)
-    recolor /= 255.0
-    return recolor
+    #recolor /= 255.0
+    recolor = cv2.convertScaleAbs(recolor)
+    return recolor, labels
 
+def fixedBackProjection(image, channel_list, hist):
+    out_image = np.zeros(image.shape[0:2], dtype=hist.dtype)
+    
+    for row in range(image.shape[0]):
+        for col in range(image.shape[1]):
+            pixel = image[row,col]
+            pixel = pixel[channel_list]
+            
+            pixel = pixel.astype("float64")
+            pixel /= 255.0
+            pixel *= (hist.shape[0]-1)
+            pixel = pixel.astype("uint8")
+            
+            #val = hist
+            #for dim in range(len(channel_list)):
+            #    val = val[pixel[dim]]
+            #print(pixel)
+            val = hist[tuple(pixel)]
+            #print(val)
+            
+            out_image[row,col] = val
+            
+    #out_image /= 255.0
+    
+    return out_image 
+
+def fixedCalcHist(image, channel_list, hist_sizes, hist_ranges):
+    hist = np.zeros(hist_sizes, dtype="float64")
+    
+    for row in range(image.shape[0]):
+        for col in range(image.shape[1]):
+            pixel = image[row,col]
+            pixel = pixel[channel_list]
+            
+            new_pixel = []
+            for c in range(len(channel_list)):
+                val = pixel[c]
+                one_range = hist_ranges[(c*2):(c*2+2)]
+                val -= one_range[0]
+                val /= (one_range[1] - one_range[0])
+                val *= (hist_sizes[c]-1)
+                val = int(val)
+                new_pixel.append(val)
+                
+            hist[tuple(new_pixel)] += 1
+    
+    hist /= np.prod(hist_sizes)
+    return hist
+                
+def compare_histograms(hist1, hist2):
+    dist = hist1 - hist2
+    dist *= dist
+    dist = np.sum(dist)
+    dist = np.sqrt(dist)
+    # Assuming value ranges of [0,1]
+    dist /= np.sqrt(hist1.shape[0])
+    dist = 1.0 - dist    
+    return dist         
+        
 ###############################################################################
 # MAIN
 ###############################################################################
@@ -379,7 +439,7 @@ def main():
         print("Opening webcam...")
 
         # Linux/Mac (or native Windows) with direct webcam connection
-        capture = cv2.VideoCapture(1) #, cv2.CAP_DSHOW) # CAP_DSHOW recommended on Windows 
+        capture = cv2.VideoCapture(0, cv2.CAP_DSHOW) # CAP_DSHOW recommended on Windows 
         # WSL: Use Yawcam to stream webcam on webserver
         # https://www.yawcam.com/download.php
         # Get local IP address and replace
@@ -437,10 +497,54 @@ def main():
         
         if ret == True:        
             # Show the image
+            ymin = 0
+            xmin = 0
+            ymax = 300
+            xmax = 100
             
-            frame = cluster_colors(frame)
-            cv2.imshow(windowName, frame)
+            orig = np.copy(frame)
+            cv2.rectangle(orig, (xmin, ymin), (xmax, ymax), (0,0,255), 3)
+            cv2.imshow(windowName, orig)
+            k = 10
+            frame, label_image = cluster_colors(frame, k=k)
+            label_image = np.reshape(label_image, frame.shape[0:2])
             
+            cv2.imshow("CLUSTER", frame)
+            
+            #median_frame = cv2.medianBlur(frame, 13)
+            #cv2.imshow("MEDIAN", median_frame)
+            
+            #color_hist = fixedCalcHist(frame, [0,1,2], [10,10,10],
+            #                           [0,256,0,256,0,256])
+            
+            
+            '''
+            # COLOR VERSION
+            subimage = get_bound_box_image(frame, (ymin, xmin, ymax, xmax))
+            color_hist = cv2.calcHist([subimage],[0,1,2],None,
+                                      [256,256,256],
+                                      [0,256,0,256,0,256])
+            cv2.normalize(color_hist, color_hist, 0, 1.0, cv2.NORM_MINMAX)
+            #color_hist /= np.prod(frame.shape[0:2])
+            color_back = fixedBackProjection(frame, [0,1,2], color_hist)
+            '''
+            
+            # LABEL VERSION
+            label_image = np.expand_dims(label_image, axis=-1)
+            label_image = label_image.astype("uint8")
+            subimage = get_bound_box_image(label_image, (ymin, xmin, ymax, xmax))
+            color_hist = cv2.calcHist([subimage],[0],None,
+                                      [k],
+                                      [0,k])
+            cv2.normalize(color_hist, color_hist, 0, 1.0, cv2.NORM_MINMAX)
+            #color_hist /= np.prod(frame.shape[0:2])
+            color_back = fixedBackProjection(label_image, [0], color_hist)
+            
+            print("MAX:", np.amax(color_back))
+            
+            cv2.imshow("COLOR BACK", color_back)
+            
+            '''        
             
             subimage = get_bound_box_image(frame, box)
             cv2.imshow("ITEM", subimage)
@@ -476,7 +580,8 @@ def main():
                         
             video_frames.append(gray_image)
                         
-            prev_frame = np.copy(gray_image)              
+            prev_frame = np.copy(gray_image)
+            '''              
         else:
             break
 
