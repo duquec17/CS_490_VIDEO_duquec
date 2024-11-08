@@ -18,7 +18,7 @@ import A01
 
 base_dir = "assign02"
 input_dir = base_dir + "/" + "input"
-ground_dir = base_dir + "/" + "ground"
+ground_dir = "../../Data/assign02/ground"
 output_dir = base_dir + "/" + "output"
 
 video_files = [
@@ -113,7 +113,7 @@ class Test_A02(unittest.TestCase):
                                             get_base_horn_shunck_name(iter_cnt, weight, frame_index) + ".npy"))
                                             
                         # Compute...
-                        pred_data, _, used_iter = A02.compute_one_optical_flow_horn_shunck(fx, fy, ft, 
+                        pred_data, pred_cost, used_iter = A02.compute_one_optical_flow_horn_shunck(fx, fy, ft, 
                                                                                         max_iter=iter_cnt, 
                                                                                         max_error=0,
                                                                                         weight=weight)
