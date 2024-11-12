@@ -113,12 +113,20 @@ def main():
     
     #flow_frames = compute_optical_flow_farneback(dog_images)    
     
+    fast = cv2.FastFeatureDetector_create()
+    
     # Loop through and show images
     index = 0
     key = -1
     ESC_KEY = 27
     while key != ESC_KEY:
         image = np.copy(dog_images[index])
+        
+        kp = fast.detect(image, None)
+        print("KEYPOINTS:", kp)
+        corner_image = np.copy(image)
+        corner_image = cv2.drawKeypoints(corner_image, kp, None, color=(255,0,0))
+
         
         (ymin, xmin, ymax, xmax) = dog_boxes[index]
         orig_subimage = image[ymin:ymax, xmin:xmax]
@@ -202,6 +210,7 @@ def main():
              
         heat_image = np.where(heat_image > 0.7, heat_image, 0.0)
         
+        
         cv2.imshow("DOG", image)
         cv2.imshow("SUBIMAGE", subimage)
         cv2.imshow("CLUSTER", cluster_image)
@@ -209,6 +218,7 @@ def main():
         cv2.imshow("SLIC", visual_slic)
         cv2.imshow("SLIC AVE", slic_subimage)
         cv2.imshow("HSV HEAT", heat_map_hsv)
+        cv2.imshow("FASTDOG", corner_image)
         
         
         #cv2.imshow("FLOW", flow_frames[index])
