@@ -113,12 +113,71 @@ def main():
     
     #flow_frames = compute_optical_flow_farneback(dog_images)    
     
+    fast = cv2.FastFeatureDetector_create()
+    orb = cv2.ORB_create(nfeatures=1000)  
+    
+    cur_box = dog_boxes[0]    
+    fokp = orb.detect(dog_images[0], None)         
+    fokp, fodes = orb.compute(dog_images[0], fokp)
+    
+    bfmatch = cv2.BFMatcher(normType=cv2.NORM_HAMMING, crossCheck=True)
+    
+    
     # Loop through and show images
     index = 0
     key = -1
     ESC_KEY = 27
     while key != ESC_KEY:
         image = np.copy(dog_images[index])
+        
+        kp = fast.detect(image, None)
+        okp = orb.detect(image, None)
+        okp, odes = orb.compute(image, okp)
+        print("ORB:", odes.shape)
+        
+        matches = bfmatch.match(fodes, odes)
+                
+        #print("KEYPOINTS:", kp)
+        corner_image = np.copy(image)
+        corner_image = cv2.drawKeypoints(corner_image, okp, None, color=(255,0,0))
+
+        corner_image = cv2.drawKeypoints(corner_image, fokp, None, color=(0,0,255))
+
+        src_pts = []
+        dst_pts = []
+        for match in matches:
+            f_index = match.queryIdx
+            t_index = match.trainIdx
+            first = fokp[f_index]
+            second = okp[t_index]       
+            src_pts.append((int(first.pt[0]), int(first.pt[1])))
+            dst_pts.append((int(second.pt[0]), int(second.pt[1])))   
+            cv2.line(corner_image, 
+                     (int(first.pt[0]), int(first.pt[1])), 
+                     (int(second.pt[0]), int(second.pt[1])), (0,255,0), 2)
+            
+        src_pts = np.array(src_pts).astype("float32")
+        dst_pts = np.array(dst_pts).astype("float32")
+        transform, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+        
+        old_box = [
+            [cur_box[1], cur_box[0]],
+            [cur_box[3], cur_box[2]],
+        ]
+        old_box = np.array(old_box).astype("float32").reshape(-1,1,2)
+        
+        new_box = cv2.perspectiveTransform(old_box,transform)
+        new_box = new_box.flatten().astype("int32")
+        print(new_box)
+        
+        cur_box = (new_box[1], new_box[0], 
+                   new_box[3], new_box[2])
+        
+        cv2.rectangle(corner_image, (new_box[0], new_box[1]),
+                      (new_box[2], new_box[3]), (255,0,255), 3)
+            
+        fokp = okp
+        fodes = odes
         
         (ymin, xmin, ymax, xmax) = dog_boxes[index]
         orig_subimage = image[ymin:ymax, xmin:xmax]
@@ -137,7 +196,7 @@ def main():
             ave_color = cv2.mean(orig_subimage, mask)[0:3]
             #all_ave_colors.append(ave_color)
             slic_subimage[coord] = ave_color
-            print(ave_color)
+            #print(ave_color)
             
         #all_ave_colors = np.array(all_ave_colors)
                 
@@ -180,8 +239,8 @@ def main():
         
         heat_map_hsv = cv2.calcBackProject([combo_image], [0,1], sub_hist, [0,max_index,0,256],1)
         
-        print(heat_map_hsv.shape)
-        print(heat_map_hsv.dtype)
+        #print(heat_map_hsv.shape)
+        #print(heat_map_hsv.dtype)
         
         
         labelmap = labelmap.flatten()
@@ -202,6 +261,7 @@ def main():
              
         heat_image = np.where(heat_image > 0.7, heat_image, 0.0)
         
+        
         cv2.imshow("DOG", image)
         cv2.imshow("SUBIMAGE", subimage)
         cv2.imshow("CLUSTER", cluster_image)
@@ -209,6 +269,7 @@ def main():
         cv2.imshow("SLIC", visual_slic)
         cv2.imshow("SLIC AVE", slic_subimage)
         cv2.imshow("HSV HEAT", heat_map_hsv)
+        cv2.imshow("FASTDOG", corner_image)
         
         
         #cv2.imshow("FLOW", flow_frames[index])
