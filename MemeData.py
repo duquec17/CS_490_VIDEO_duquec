@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import os
 from sklearn.model_selection import train_test_split
@@ -11,11 +12,13 @@ class MemeDataset(Dataset):
     def __init__(self, basedir, is_train,
                  seed=42, transform=None,
                  target_transform=None,
-                 frame_stride=1):
+                 frame_stride=1,
+                 max_frame_cnt=None):
         self.basedir = basedir
         self.transform = transform
         self.target_transform = target_transform
         self.frame_stride = frame_stride
+        self.max_frame_cnt = max_frame_cnt
         
         train_list = []
         test_list = []
@@ -56,7 +59,10 @@ class MemeDataset(Dataset):
             out_video = []
             for i in range(0, len(video), self.frame_stride):
                 out_video.append(video[i])
-            video = torch.stack(out_video, 0)            
+            video = torch.stack(out_video, 0)    
+            
+        if self.max_frame_cnt is not None:
+            video = video[:self.max_frame_cnt]      
         
         if self.transform is not None:
             video = self.transform(video)
@@ -70,7 +76,42 @@ class MemeDataset(Dataset):
             
         return video, label
     
+class FlatVideoNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.comp_layers = nn.Sequential(
+            nn.Linear(691200, 32),
+            nn.Sigmoid(),
+            nn.Linear(32, 1)
+        )
+        
+    def forward(self, x):
+        x = self.flatten(x)
+        x = self.comp_layers(x)        
+        return x
+    
+from prettytable import PrettyTable
+
+def count_parameters(model):
+    table = PrettyTable(["Modules", "Parameters"])
+    total_params = 0
+    for name, parameter in model.named_parameters(): 
+        if not parameter.requires_grad:
+            continue
+        params = parameter.numel()
+        table.add_row([name, params])
+        total_params += params
+    print(table)
+    print(f"Total Trainable Params: {total_params}")
+    return total_params
+    
 def main():
+    model = FlatVideoNet()
+    print(model)
+    
+    # model = model.to("cuda")
+    count_parameters(model)
     
     # 0.15
     #transform = v2.Compose([
@@ -87,11 +128,22 @@ def main():
     
     dataset = MemeDataset("./upload/memes", is_train=True, 
                           transform=transform,
-                          frame_stride=3)
+                          frame_stride=1,
+                          max_frame_cnt=15)
 
-    train_ds = DataLoader(dataset, batch_size=1)
+    train_ds = DataLoader(dataset, batch_size=2)
+    
     
     for X, y in train_ds:
+        Xs = X.shape
+        print("X BEFORE:", Xs)
+        rX = torch.reshape(X, [-1, Xs[2], Xs[3], Xs[4]])  
+        print("X AFTER:", rX.shape)              
+        out = model(rX)
+        print("OUT BEFORE:", out.shape)    
+        out = torch.reshape(out, [Xs[0], Xs[1], -1])   
+        print("OUT AFTER:", out.shape)
+        
         print(X.shape)
         X = X.numpy()
         X = X[0]        
