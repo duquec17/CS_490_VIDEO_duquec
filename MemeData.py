@@ -110,6 +110,11 @@ def main():
     model = FlatVideoNet()
     print(model)
     
+    loss = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(),
+                                 lr=1e-3)
+    
+    
     # model = model.to("cuda")
     count_parameters(model)
     
