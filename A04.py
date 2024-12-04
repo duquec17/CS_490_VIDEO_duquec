@@ -26,7 +26,7 @@ import shutil
 # that will be tested. Makes use of self-documented names.
 def get_approach_names():
     
- return 
+ return ["SimpleCNN", "ResNetTransferLearning"]
 
 # Function that given the approach name returns a text
 # description of what makes this approach distinct. No 
