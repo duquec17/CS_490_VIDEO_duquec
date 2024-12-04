@@ -54,6 +54,7 @@ def get_data_transform(approach_name, training):
     # Checks to see if this is for transformation is for data training
     if training:
         # For training data, applies data augmentation
+        # Augment ex: Croping, flipping, etc.
         data_transforms = v2.Compose([v2.ToImageTensor(), 
                                   v2.ConvertImageDtype()])
     else:
