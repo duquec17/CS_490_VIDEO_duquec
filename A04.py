@@ -13,8 +13,7 @@
 ###############################################################################
 
 from pathlib import Path
-import sys
-import cv2
+from pytorchvideo.models.hub import slow_r50
 import os 
 import shutil
 
@@ -51,12 +50,17 @@ def get_batch_size(approach_name):
     
  return
 
-# Function that 
+# Function that given the approach name & output class_cnt,
+# builds and returns a PyTorch neural network that takes a
+# video of shape[batch, frames, channels, height, width] and
+# outputs a vector with class_cnt elements.
 def create_model(approach_name, class_cnt):
     
  return 
 
-# Function that 
+# Function that given the provided model, the device it is
+# located, and the relevant dataloaders, train this model and
+# return it.
 def train_model(approach_name, model, device, train_dataloader, test_dataloader):
     
  return 
