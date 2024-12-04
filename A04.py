@@ -51,16 +51,18 @@ def get_approach_description(approach_name):
 # training data, returns the appropriate dataset transform
 # Does NOT augment data for non-training data.
 def get_data_transform(approach_name, training):
-    # Checks to see if this is for transformation is for data training
+    # Checks to see if this transformation is for data training
     if training:
-        # For training data, applies data augmentation
-        # Augment ex: Croping, flipping, etc.
-        data_transforms = v2.Compose([v2.ToImageTensor(), 
-                                  v2.ConvertImageDtype()])
+        # For training data, uses transforms & data augmentation
+        data_transforms = v2.Compose([v2.ToImageTensor(), # Converts image to PyTorch tensor
+                                  v2.ConvertImageDtype()]) # Ensures the data type is correct
+        
+        # Data Augments below
+        
     else:
-        # For non-training data, only necessary transformations (no augments)
-        data_transforms = v2.Compose([v2.ToImageTensor(), 
-                                  v2.ConvertImageDtype()])
+        # For non-training data, uses only transforms & no augments
+        data_transforms = v2.Compose([v2.ToImageTensor(), # Converts image to PyTorch tensor
+                                  v2.ConvertImageDtype()]) # Ensures the data type is correct
     return data_transforms
 
 # Function that given the approach name, returns the preferred
@@ -68,16 +70,23 @@ def get_data_transform(approach_name, training):
 # is no preference, but allows one to use a smaller batch size
 # if the architecture is large enough where that is a concern.
 def get_batch_size(approach_name):
-    
- return
+    return
 
 # Function that given the approach name & output class_cnt,
 # builds and returns a PyTorch neural network that takes a
 # video of shape[batch, frames, channels, height, width] and
 # outputs a vector with class_cnt elements.
 def create_model(approach_name, class_cnt):
-    
- return 
+    # Checks to see what approach name is listed as and act based on match
+    if approach_name == "SimpleCNN":
+        # Create a simple CNN model
+        model = torch.nn.Sequential(
+            torch.nn.Conv3d(3,16,kernel_size=3,stride=1,padding=1),
+            torch.nn.ReLU(),
+            torch.nn.MaxPool3d(kernel_size=2,stride=2),
+            
+        )
+    return model
 
 # Function that given the provided model, the device it is
 # located, and the relevant dataloaders, train this model and
