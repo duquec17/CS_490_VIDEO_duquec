@@ -23,6 +23,9 @@ from torchvision.transforms import v2
 import cv2
 import numpy as np
 import os
+import sys
+from prettytable import PrettyTable
+from MemeData import *
 
 ###############################################################################
 # Definitions of functions
@@ -89,17 +92,17 @@ def create_model(approach_name, class_cnt):
     # Checks to see what approach name is listed as and act based on match
     if approach_name == "SimpleCNN":
         # Create a simple CNN model
-        model = torch.nn.Sequential(
-            torch.nn.Conv3d(3,16,kernel_size=3,stride=1,padding=1), # Convulational Layer
-            torch.nn.ReLU(),
-            torch.nn.MaxPool3d(kernel_size=2,stride=2),
-            torch.nn.Conv3d(16,32,kernel_size=3,stride=1,padding=1),
-            torch.nn.ReLU(),
-            torch.nn.MaxPool3d(kernel_size=2,stride=2),
-            torch.nn.Flatten(),
-            torch.nn.Linear(32*7*7*7*128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128,class_cnt)
+        model = nn.Sequential(
+            nn.Conv3d(2,16,kernel_size=2,stride=1,padding=1), # Convulational Layer
+            nn.ReLU(),
+            nn.MaxPool3d(kernel_size=2,stride=2),
+            nn.Conv3d(16,32,kernel_size=2,stride=1,padding=1),
+            nn.ReLU(),
+            nn.MaxPool3d(kernel_size=2,stride=2),
+            nn.Flatten(),
+            nn.Linear(32*7*7*7, 128),
+            nn.ReLU(),
+            nn.Linear(128,class_cnt)
         )
         return model
     else:
@@ -109,7 +112,8 @@ def create_model(approach_name, class_cnt):
 # located, and the relevant dataloaders, train this model and
 # return it.
 def train_model(approach_name, model, device, train_dataloader, test_dataloader):
+    # 
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     
-    model.to(device)
-        
     return model
