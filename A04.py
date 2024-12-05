@@ -90,7 +90,7 @@ def create_model(approach_name, class_cnt):
     if approach_name == "SimpleCNN":
         # Create a simple CNN model
         model = torch.nn.Sequential(
-            torch.nn.Conv3d(3,16,kernel_size=3,stride=1,padding=1),
+            torch.nn.Conv3d(3,16,kernel_size=3,stride=1,padding=1), # Convulational Layer
             torch.nn.ReLU(),
             torch.nn.MaxPool3d(kernel_size=2,stride=2),
             torch.nn.Conv3d(16,32,kernel_size=3,stride=1,padding=1),
@@ -101,7 +101,9 @@ def create_model(approach_name, class_cnt):
             torch.nn.ReLU(),
             torch.nn.Linear(128,class_cnt)
         )
-    return model
+        return model
+    else:
+        return ValueError("Unknown approach_name: {approach_name}")
 
 # Function that given the provided model, the device it is
 # located, and the relevant dataloaders, train this model and
