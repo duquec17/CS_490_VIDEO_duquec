@@ -84,6 +84,8 @@ def create_model(approach_name, class_cnt):
             torch.nn.Conv3d(3,16,kernel_size=3,stride=1,padding=1),
             torch.nn.ReLU(),
             torch.nn.MaxPool3d(kernel_size=2,stride=2),
+            torch.nn.Conv3d(16,32,kernel_size=3,stride=1,padding=1),
+            torch.nn.ReLU(),
             
         )
     return model
