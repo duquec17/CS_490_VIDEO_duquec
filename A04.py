@@ -31,7 +31,7 @@ import os
 # Function that returns a list of the names of all combinations
 # that will be tested. Makes use of self-documented names.
 def get_approach_names():
-    
+    # Still thinking about whether to do ResNet or not
  return ["SimpleCNN", "ResNetTransferLearning"]
 
 # Function that given the approach name returns a text
@@ -39,7 +39,7 @@ def get_approach_names():
 # more than 1 sentence in terms of length.
 def get_approach_description(approach_name):
     descrip = {
-        "SimpleCNN": "Basic CNN with 3 Convolutional layers",
+        "SimpleCNN": "Basic Convolutional Neural Network with 3 Convolutional layers",
         "ResNetTransferLearning": "ResNet-based model pre-trained on ImageNet, fine-tuned on HMDB51"
     }
     
@@ -110,4 +110,6 @@ def create_model(approach_name, class_cnt):
 # return it.
 def train_model(approach_name, model, device, train_dataloader, test_dataloader):
     
+    model.to(device)
+        
     return model
