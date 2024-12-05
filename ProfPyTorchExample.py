@@ -11,17 +11,36 @@ import sys
 from prettytable import PrettyTable
 from MemeData import *
 
+class BasicConv2DBlock(nn.Module):
+    def __init__(self, input_channels, output_channels):
+        super().__init__()
+        self.conv1 = nn.Conv3d(input_channels, output_channels, (1,3,3), padding="same")
+        self.act1 = nn.ReLU()
+        self.conv2 = nn.Conv3d(output_channels, output_channels, (1,3,3), padding="same")
+        self.act2 = nn.ReLU()
+        self.pool = nn.MaxPool3d((1,2,2))
+        
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.act1(x)
+        x = self.conv2(x)
+        x = self.act2(x)
+        x = self.pool(x)
+        return x
+
 class BasicVideoNet(nn.Module):
     def __init__(self, class_cnt):
         super().__init__()
         # Create a module list so we have slightly more control
         self.feature_extract = nn.ModuleList([
             # Really 2D convolutions (with zero padding)
-            nn.Conv3d(3, 32, (1,3,3), padding="same"), # For no padding: "valid"
-            nn.ReLU(),
-            nn.Conv3d(32, 32, (1,3,3), padding="same"),
-            nn.ReLU(),
-            nn.MaxPool3d((1,2,2)),
+            
+            #nn.Conv3d(3, 32, (1,3,3), padding="same"), # For no padding: "valid"
+            #nn.ReLU(),
+            #nn.Conv3d(32, 32, (1,3,3), padding="same"),
+            #nn.ReLU(),
+            #nn.MaxPool3d((1,2,2)),
+            BasicConv2DBlock(3,32),
             
             # This one uses strided conv instead of pooling
             nn.Conv3d(32, 32, (1,3,3), padding="same"),
