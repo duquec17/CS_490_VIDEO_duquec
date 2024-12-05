@@ -70,7 +70,16 @@ def get_data_transform(approach_name, training):
 # is no preference, but allows one to use a smaller batch size
 # if the architecture is large enough where that is a concern.
 def get_batch_size(approach_name):
-    return
+    
+    # Alter batch size based on name
+    if approach_name == "SimpleCNN":
+        # Size for SimpleCNN
+        batch_size = 64
+    else:
+        # Size for batch_size
+        batch_size = 32
+        
+    return batch_size
 
 # Function that given the approach name & output class_cnt,
 # builds and returns a PyTorch neural network that takes a
@@ -86,7 +95,11 @@ def create_model(approach_name, class_cnt):
             torch.nn.MaxPool3d(kernel_size=2,stride=2),
             torch.nn.Conv3d(16,32,kernel_size=3,stride=1,padding=1),
             torch.nn.ReLU(),
-            
+            torch.nn.MaxPool3d(kernel_size=2,stride=2),
+            torch.nn.Flatten(),
+            torch.nn.Linear(32*7*7*7*128),
+            torch.nn.ReLU(),
+            torch.nn.Linear(128,class_cnt)
         )
     return model
 
@@ -95,4 +108,4 @@ def create_model(approach_name, class_cnt):
 # return it.
 def train_model(approach_name, model, device, train_dataloader, test_dataloader):
     
- return 
+    return model
