@@ -41,6 +41,7 @@ def get_approach_names():
 # description of what makes this approach distinct. No 
 # more than 1 sentence in terms of length.
 def get_approach_description(approach_name):
+    # Definition of each approach
     descrip = {
         "SimpleCNN": "Basic Convolutional Neural Network with 3 Convolutional layers",
         "ResNetTransferLearning": "ResNet-based model pre-trained on ImageNet, fine-tuned on HMDB51"
@@ -57,15 +58,22 @@ def get_data_transform(approach_name, training):
     # Checks to see if this transformation is for data training
     if training:
         # For training data, uses transforms & data augmentation
-        data_transforms = v2.Compose([v2.ToImageTensor(), # Converts image to PyTorch tensor
-                                  v2.ConvertImageDtype()]) # Ensures the data type is correct
-        
-        # Data Augments below
-        
+        data_transforms = v2.Compose([
+            v2.ToTensor(),
+            
+             # Data augmentation - flip horizontally
+            v2.RandomHorizontalFlip(),
+            v2.RandomRotation(10), 
+            
+            # Coverts to correct data type
+            v2.ConvertImageDtype(torch.float)
+        ])
     else:
         # For non-training data, uses only transforms & no augments
-        data_transforms = v2.Compose([v2.ToImageTensor(), # Converts image to PyTorch tensor
-                                  v2.ConvertImageDtype()]) # Ensures the data type is correct
+        data_transforms = v2.Compose([
+            v2.ToTensor(),
+            v2.ConvertImageDtype(torch.float)
+        ])
     return data_transforms
 
 # Function that given the approach name, returns the preferred
@@ -79,7 +87,7 @@ def get_batch_size(approach_name):
         # Size for SimpleCNN
         batch_size = 64
     else:
-        # Size for batch_size
+        # Size for default batch_size
         batch_size = 32
         
     return batch_size
@@ -93,7 +101,7 @@ def create_model(approach_name, class_cnt):
     if approach_name == "SimpleCNN":
         # Create a simple CNN model
         model = nn.Sequential(
-            nn.Conv3d(2,16,kernel_size=2,stride=1,padding=1), # Convulational Layer
+            nn.Conv3d(2,16,kernel_size=2,stride=1,padding=1),
             nn.ReLU(),
             nn.MaxPool3d(kernel_size=2,stride=2),
             nn.Conv3d(16,32,kernel_size=2,stride=1,padding=1),
@@ -115,5 +123,8 @@ def train_model(approach_name, model, device, train_dataloader, test_dataloader)
     # 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    model.train()
+    for epoch
     
     return model
