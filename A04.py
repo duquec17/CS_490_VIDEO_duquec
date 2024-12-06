@@ -124,7 +124,18 @@ def train_model(approach_name, model, device, train_dataloader, test_dataloader)
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     
+    # Training loop (simplified)
     model.train()
-    for epoch
+    for epoch in range(10):  # Train for 10 epochs (can be adjusted)
+        for inputs, labels in train_dataloader:
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+        print(f"Epoch {epoch+1}/10, Loss: {loss.item():.4f}")
     
     return model
