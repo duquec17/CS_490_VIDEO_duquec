@@ -55,24 +55,32 @@ def get_approach_description(approach_name):
 # training data, returns the appropriate dataset transform
 # Does NOT augment data for non-training data.
 def get_data_transform(approach_name, training):
+    # Define and adjustable resolution size
+    target_resolution = (240,240)
+    
     # Checks to see if this transformation is for data training
     if training:
         # For training data, uses transforms & data augmentation
         data_transforms = v2.Compose([
-            v2.ToTensor(),
+            # Sets input as image and resizes to target resolution variable
+            v2.ToImage(),
+            v2.Resize(target_resolution),
             
              # Data augmentation - flip horizontally
             v2.RandomHorizontalFlip(),
             v2.RandomRotation(10), 
             
             # Coverts to correct data type
-            v2.ConvertImageDtype(torch.float)
+            v2.ToTensor(),
+            v2.ConvertImageDtype(torch.float32)
         ])
     else:
         # For non-training data, uses only transforms & no augments
         data_transforms = v2.Compose([
+            v2.ToImage(),  # Ensure input is treated as an image
+            v2.Resize(target_resolution),  # Resize frames to the target resolution
             v2.ToTensor(),
-            v2.ConvertImageDtype(torch.float)
+            v2.ConvertImageDtype(torch.float32)
         ])
     return data_transforms
 
@@ -120,9 +128,14 @@ def create_model(approach_name, class_cnt):
 # located, and the relevant dataloaders, train this model and
 # return it.
 def train_model(approach_name, model, device, train_dataloader, test_dataloader):
-    # 
+    # Define the loss function and optimizer
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    for batch in train_dataloader:
+        print(f"Batch contents: {len(batch)}")
+        print(batch)
+        break
     
     # Training loop (simplified)
     model.train()
