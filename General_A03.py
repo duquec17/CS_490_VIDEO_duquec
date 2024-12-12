@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import sys
 
-BASE_DOG_DIR = os.path.join(".", "data", "dog")
+BASE_DOG_DIR = os.path.join("..", "..", "Data", "assign03", "dog")
 BASE_OUT_DIR = os.path.join(".", "assign03", "output")
 
 ###############################################################################
@@ -213,8 +213,8 @@ def show_predicted_video(dog_index):
 def main():
     # Load dog dataset
     dog_index = 17
-    max_images_to_load = 60 #120
-    starting_index =  30 #0
+    max_images_to_load = 120
+    starting_index =  0
     dog_images, dog_boxes, dog_video_name = load_dog_video(dog_index, 
                                                            max_images_to_load=max_images_to_load,
                                                            starting_frame_index=starting_index)
