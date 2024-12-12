@@ -72,8 +72,8 @@ def track_doggo(video_frames, first_box):
     # First try: Cut the bounding box in half and find histogram
     # Create heat map to scale based on what is dog (1), maybe dog(0.5), and unsure (.1)
 
-    cv2.imshow("DOG", object_region)
-    cv2.waitKey(-1)
+    #cv2.imshow("DOG", object_region)
+    #cv2.waitKey(-1)
     model_hist = cv2.calcHist([object_region], [0, 1], None, [180, 256], [0, 180, 0, 256])
 
     model_hist = cv2.normalize(model_hist, model_hist, 0, 255, cv2.NORM_MINMAX)
@@ -99,8 +99,8 @@ def track_doggo(video_frames, first_box):
         back_proj = cv2.GaussianBlur(back_proj, (5, 5), 0)
 
         #print(back_proj.shape)
-        cv2.imshow("BACKPROJ", back_proj)
-        cv2.waitKey(-1)
+        #cv2.imshow("BACKPROJ", back_proj)
+        #cv2.waitKey(-1)
 
         # Apply CamShift to get the new location
         ret, box = cv2.CamShift(back_proj, box, (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1))
@@ -118,5 +118,5 @@ def track_doggo(video_frames, first_box):
         # Add current version of box to list to later calculate
         tracked_boxes.append((ymin, xmin, ymax, xmax))
 
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
     return tracked_boxes
