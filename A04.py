@@ -109,14 +109,14 @@ def create_model(approach_name, class_cnt):
     if approach_name == "SimpleCNN":
         # Create a simple CNN model
         model = nn.Sequential(
-            nn.Conv3d(2,16,kernel_size=2,stride=1,padding=1),
+            nn.Conv3d(3,16,kernel_size=2,stride=1,padding=1),
             nn.ReLU(),
             nn.MaxPool3d(kernel_size=2,stride=2),
             nn.Conv3d(16,32,kernel_size=2,stride=1,padding=1),
             nn.ReLU(),
             nn.MaxPool3d(kernel_size=2,stride=2),
             nn.Flatten(),
-            nn.Linear(32*7*7*7, 128),
+            nn.Linear(921600, 128),
             nn.ReLU(),
             nn.Linear(128,class_cnt)
         )
@@ -140,15 +140,17 @@ def train_model(approach_name, model, device, train_dataloader, test_dataloader)
     # Training loop (simplified)
     model.train()
     for epoch in range(10):  # Train for 10 epochs (can be adjusted)
-        for inputs, labels in train_dataloader:
+        for inputs, _, labels in train_dataloader:
             inputs, labels = inputs.to(device), labels.to(device)
 
             optimizer.zero_grad()
+            
+            inputs = torch.transpose(inputs, 1, 2) # NOTE: would need this in evaluate too.
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
-        print(f"Epoch {epoch+1}/10, Loss: {loss.item():.4f}")
+        print(f"Epoch {epoch+1}/10, Loss: {loss.detach().cpu().item():.4f}")
     
     return model

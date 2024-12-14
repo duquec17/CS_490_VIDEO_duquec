@@ -7,10 +7,36 @@ from pathlib import Path
 
 # WARNING: Must install unrar
 # conda install conda-forge::unrar
+# If you get an error saying "Couldn't find path to unrar library",
+#   then have to install the UnRAR dll/lib.
+# WINDOWS:
+# - Go to WinRAR add-on/extra page: https://www.rarlab.com/rar_add.htm
+# - Download and run the UnRAR.dll installer: https://www.rarlab.com/rar/unrardll-710b2.exe
+# - Create a system environment variable:
+#       - Variable name: UNRAR_LIB_PATH
+#       - Variable value: C:\Program Files (x86)\UnrarDLL\x64\UnRAR64.dll
+# - This assumes that UnRAR was installed to that directory.
+# - Close Visual Code and reopen.  Kill any open terminals in there as well once it reopens.
+# LINUX/MAC:
+# - The implication from this page (https://pypi.org/project/unrar/) is that you will 
+#       have to download the source and compile it.  I suspect you will also have to set
+#       an environment variable to point to the installed path.  
+# 
+# In the WORST case:
+# - Comment out the import to unrar (line 3)
+# - In prepare_data ONLY:
+#       * Comment out the rmtree call (line 117)
+#       * Comment out any references to extractall (lines 141, 144, 164)
+#       * Comment out any calls to os.remove() (lines 167, 172, 173)
+# - Run the script (it will fail)
+# - Manually unrar the files and make sure that only desired classes remain
+#       * Undergraduate: ["run", "walk"]
+#       * Graduate: ["climb_stairs", "fall_floor", "run", "walk"]
+# - Run the script again
 
 # WARNING: If you want your data put somewhere OTHER than in the project directory,
 # change this variable
-CORE_DATA_DIR = os.path.join(".", "data")
+CORE_DATA_DIR = os.path.join("..", "..", "Data")
 
 def get_data_params(is_grad):
     if is_grad:
